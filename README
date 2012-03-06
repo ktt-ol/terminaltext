@@ -1,0 +1,6 @@
+Arduino + Terminals
+-------------------
+
+Stellt abwechselnd Lauftext und statischen Text auf zwei Serielle Terminals dar.
+
+Text wird per Figlet in ASCII-Art umgewandelt und speicheroptimiert in ktt_text.h abgelegt. Siehe figlet_array.py Skript.
