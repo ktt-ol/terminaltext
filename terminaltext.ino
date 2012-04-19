@@ -64,8 +64,8 @@ public:
 };
 
 // SoftwareSerial(RX, TX) (MAX232 Pins: 9/10, 12/11)
-SoftwareSerial mySerial1(8, 9);
-SoftwareSerial mySerial2(10, 11);
+SoftwareSerial mySerial1(2, 3);
+SoftwareSerial mySerial2(5, 4);
 TermScreen screen1(&mySerial1);
 TermScreen screen2(&mySerial2);
 
@@ -170,7 +170,7 @@ void textAppear(int textIdx1, int textIdx2) {
 }
 
 
-void loop() {   
+void loop() {
     textAppear(0, 1);
     delay(1000);
     screen1.clear();
