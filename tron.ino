@@ -170,15 +170,20 @@ public:
     int x;
     int y;
     directions_t direction;
+    PSPad *pad;
     char symb;
     int points;
     bool dead;
+    bool active;
 
-    Snake(int x, int y, directions_t dir, char symb) :
-        x(x), y(y), direction(dir), symb(symb), points(0), dead(false)
+    Snake(int x, int y, directions_t dir, char symb, PSPad *pad) :
+        x(x), y(y), direction(dir), symb(symb),
+        points(0), dead(false), active(false),
+        pad(pad)
     {};
 
-    void updateController(PSPad *pad) {
+    void updateController() {
+        pad->update();
         directions_t dir = padDirection(pad);
         if (dir != NONE) {
             direction = dir;
@@ -225,21 +230,19 @@ TermScreen screen1(&mySerial1);
 TermScreen screen2(&mySerial2);
 ScreenWall screen = ScreenWall();
 
-Snake snake1(10, 12, RIGHT, 'A');
-Snake snake2(70, 12, LEFT, 'B');
-Snake snake3(10, 12, RIGHT, 'C');
-Snake snake4(70, 12, LEFT, 'D');
-
-ScreenMask visited(2*80, 24);
-
 PSPad pad1(10, 9, 12, 11, PSPAD_MULTITAP_PAD1);
 PSPad pad2(10, 9, 12, 11, PSPAD_MULTITAP_PAD2);
 PSPad pad3(10, 9, 12, 11, PSPAD_MULTITAP_PAD2);
 PSPad pad4(10, 9, 12, 11, PSPAD_MULTITAP_PAD2);
 
+Snake snake1(10, 12, RIGHT, 'A', &pad1);
+Snake snake2(70, 12, LEFT,  'B', &pad2);
+Snake snake3(10, 12, RIGHT, 'C', &pad3);
+Snake snake4(70, 12, LEFT,  'D', &pad4);
+
+ScreenMask visited(2*80, 24);
+
 Snake *snakes[] = {&snake1, &snake2, &snake3, &snake4};
-bool active[] = {false, false, false, false};
-PSPad *pads[] = {&pad1, &pad2, &pad3, &pad4};
 
 void setup()  
 {
@@ -301,12 +304,12 @@ typedef enum {
 
 #define FOREACH_ACTIVE_SNAKE(i) \
     for (int i=0; i < 4; i++) { \
-            if (!active[i]) { \
+            if (!snakes[i]->active) { \
                 continue; \
             }
 #define FOREACH_ACTIVE_SNAKE_OFFSET(i, offset) \
-    for (int i=offset; i < 4; i++) { \
-            if (!active[i]) { \
+    for (int i=(offset); i < 4; i++) { \
+            if (!snakes[i]->active) { \
                 continue; \
             }
 
@@ -316,8 +319,7 @@ game_status_t gameLoop() {
     }
 
     FOREACH_ACTIVE_SNAKE(i)
-        pads[i]->update();
-        snakes[i]->updateController(pads[i]);
+        snakes[i]->updateController();
         snakes[i]->move(screen);
     }
 
@@ -406,8 +408,8 @@ bool matchLoop() {
 void loop() {
     pad1.update();
     if (pad1.pressedCross()) {
-        active[0] = true;
-        active[1] = true;
+        snakes[0]->active = true;
+        snakes[1]->active = true;
         FOREACH_SNAKE(i)
             snakes[i]->points = 0;
         }
