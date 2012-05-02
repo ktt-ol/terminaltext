@@ -306,32 +306,35 @@ typedef enum {
     RUNNING, DEAD, STOP
 } game_status_t;
 
-#define FOREACH_SNAKE(i) \
-    for (int i=0; i < 4; i++) {
+#define FOREACH_SNAKE(s) \
+    for (int s ## _i=0; s ## _i < 4; s ## _i++) { \
+        Snake *s = snakes[s ## _i];
 
-#define FOREACH_ACTIVE_SNAKE(i) \
-    for (int i=0; i < 4; i++) { \
-            if (!snakes[i]->active) { \
-                continue; \
-            }
-#define FOREACH_ACTIVE_SNAKE_OFFSET(i, offset) \
-    for (int i=(offset); i < 4; i++) { \
-            if (!snakes[i]->active) { \
-                continue; \
-            }
+#define FOREACH_ACTIVE_SNAKE(s) \
+    for (int s ## _i=0; s ## _i < 4; s ## _i++) { \
+        Snake *s = snakes[s ## _i]; \
+        if (!s->active) { \
+            continue; \
+        }
 
 game_status_t gameLoop() {
     if (pad1.pressedStart()) {
         return STOP;
     }
 
-    FOREACH_ACTIVE_SNAKE(i)
-        snakes[i]->updateController();
-        snakes[i]->move(screen);
+    FOREACH_ACTIVE_SNAKE(snake)
+        snake->updateController();
+        snake->move(screen);
     }
 
-    FOREACH_ACTIVE_SNAKE(i)
-        FOREACH_ACTIVE_SNAKE_OFFSET(j, (i+1))
+    for (int i=0; i < 4; i++) {
+        if (!snakes[i]->active) {
+            continue;
+        }
+        for (int j=i+1; i < 4; i++) {
+            if (!snakes[i]->active) {
+                continue;
+            }
             if (snakes[i]->x == snakes[j]->x && snakes[i]->y == snakes[j]->y) {
                 snakes[i]->dead = true;
                 snakes[j]->dead = true;
@@ -339,18 +342,18 @@ game_status_t gameLoop() {
         }
     }
 
-    FOREACH_ACTIVE_SNAKE(i)
-        if (visited.isSet(snakes[i]->x, snakes[i]->y)) {
-            screen.put('0', snakes[i]->x, snakes[i]->y);
-            snakes[i]->dead = true;
+    FOREACH_ACTIVE_SNAKE(snake)
+        if (visited.isSet(snake->x, snake->y)) {
+            screen.put('0', snake->x, snake->y);
+            snake->dead = true;
         }
     }
-    FOREACH_ACTIVE_SNAKE(i)
-        visited.set(snakes[i]->x, snakes[i]->y);
+    FOREACH_ACTIVE_SNAKE(snake)
+        visited.set(snake->x, snake->y);
     }
 
-    FOREACH_ACTIVE_SNAKE(i)
-        if (snakes[i]->dead) {
+    FOREACH_ACTIVE_SNAKE(snake)
+        if (snake->dead) {
             return DEAD;
         }
     }
@@ -365,10 +368,10 @@ game_status_t gameLoop() {
 void printScores() {
     int textPos = 10;
 
-    FOREACH_SNAKE(i)
-        if (snakes[i]->active) {
-            screen.broadcast(snakes[i]->symb, textPos, 0);
-            screen.broadcast(itos(snakes[i]->points), textPos + 2, 0);
+    FOREACH_SNAKE(snake)
+        if (snake->active) {
+            screen.broadcast(snake->symb, textPos, 0);
+            screen.broadcast(itos(snake->points), textPos + 2, 0);
         }
         textPos += 20;
     }
@@ -399,11 +402,11 @@ bool matchLoop() {
     } while (status == RUNNING);
 
 
-    FOREACH_ACTIVE_SNAKE(i)
-        if (!snakes[i]->dead) {
-            snakes[i]->points += 1;
+    FOREACH_ACTIVE_SNAKE(snake)
+        if (!snake->dead) {
+            snake->points += 1;
         }
-        snakes[i]->dead = false;
+        snake->dead = false;
     }
 
     printScores();
@@ -420,8 +423,8 @@ bool matchLoop() {
 byte collectPlayersLoop() {
     Snake *s;
     byte activePlayers = 0;
-    FOREACH_SNAKE(i)
-        s = snakes[i];
+    FOREACH_SNAKE(snake)
+        s = snake;
         if (s->active) {
             activePlayers += 1;
             continue;
@@ -458,9 +461,9 @@ void loop() {
     if (collectPlayers()) {
         while (matchLoop()) 
         {};
-        FOREACH_SNAKE(i)
-            snakes[i]->active = false;
-            snakes[i]->points = 0;
+        FOREACH_SNAKE(snake)
+            snake->active = false;
+            snake->points = 0;
         }
         screen.clear();
         screen.broadcast("Want to play a game?", 30, 12);
