@@ -109,12 +109,19 @@ public:
         }
     }
 
+    void broadcast(char str, int col, int row) {
+        for (int i = 0; i < numScreens; i++) {
+            screens[i]->put(str, col, row);
+        }
+    }
+
     void broadcast(char *str, int col, int row) {
         for (int i = 0; i < numScreens; i++) {
             screens[i]->moveTo(col, row);
             screens[i]->puts(str);
         }
     }
+
 };
 
 typedef enum {
@@ -356,10 +363,15 @@ game_status_t gameLoop() {
 }
 
 void printScores() {
-    screen.broadcast(itos(snake1.points), 10, 0);
-    screen.broadcast(itos(snake2.points), 30, 0);
-    screen.broadcast(itos(snake3.points), 50, 0);
-    screen.broadcast(itos(snake4.points), 70, 0);
+    int textPos = 10;
+
+    FOREACH_SNAKE(i)
+        if (snakes[i]->active) {
+            screen.broadcast(snakes[i]->symb, textPos, 0);
+            screen.broadcast(itos(snakes[i]->points), textPos + 2, 0);
+        }
+        textPos += 20;
+    }
 }
 
 bool matchLoop() {
@@ -405,21 +417,54 @@ bool matchLoop() {
     }
 }
 
-void loop() {
-    pad1.update();
-    if (pad1.pressedCross()) {
-        snakes[0]->active = true;
-        snakes[1]->active = true;
-        FOREACH_SNAKE(i)
-            snakes[i]->points = 0;
+byte collectPlayersLoop() {
+    Snake *s;
+    byte activePlayers = 0;
+    FOREACH_SNAKE(i)
+        s = snakes[i];
+        if (s->active) {
+            activePlayers += 1;
+            continue;
         }
-        while (matchLoop()) {
+        s->updateController();
+        if (s->pad->pressedCross()) {
+            s->active = true;
+            activePlayers += 1;
+        }
+    }
+
+    return activePlayers;
+}
+
+bool collectPlayers() {
+    unsigned long startTime = millis();
+    byte numPlayers = collectPlayersLoop();
+    if (numPlayers >= 1) {
+        screen.clear();
+        screen.broadcast("Game starts in 5", 30, 12);
+        screen.broadcast("Press X!", 35, 14);
+        while ((millis() - startTime) <= 5000 || numPlayers < 4) {
+            printScores();
+            screen.broadcast("Game starts in ", 30, 12);
+            screen.broadcast('5' - ((millis() - startTime)/1000), 45, 12);
+            numPlayers = collectPlayersLoop();
+        }
+        return true;
+    }
+    return false;
+}
+
+void loop() {
+    if (collectPlayers()) {
+        while (matchLoop()) 
+        {};
+        FOREACH_SNAKE(i)
+            snakes[i]->active = false;
+            snakes[i]->points = 0;
         }
         screen.clear();
         screen.broadcast("Want to play a game?", 30, 12);
+        screen.broadcast("Press X!", 35, 14);
     }
-    digitalWrite(13, LOW);
     delay(50);
-    digitalWrite(13, HIGH);
-
 }
