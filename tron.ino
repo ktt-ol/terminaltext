@@ -1,6 +1,5 @@
 #include <SoftwareSerial.h>
 #include <avr/pgmspace.h>
-#include "Psx.h"
 #include "PSPad.h"
 
 // \033[?7l disable autowrap
@@ -109,20 +108,31 @@ public:
             screens[i]->clear();
         }
     }
-};
 
-
-int x = 0;
-int y = 0;
-
-struct coord {
-    byte x;
-    byte y;
+    void broadcast(char *str, int col, int row) {
+        for (int i = 0; i < numScreens; i++) {
+            screens[i]->moveTo(col, row);
+            screens[i]->puts(str);
+        }
+    }
 };
 
 typedef enum {
     LEFT, RIGHT, UP, DOWN, NONE
 } directions_t;
+
+directions_t padDirection(PSPad *pad) {
+    if (pad->pressedLeft())
+        return LEFT;
+    else if (pad->pressedRight())
+        return RIGHT;
+    else if (pad->pressedUp())
+        return UP;
+    else if (pad->pressedDown())
+        return DOWN;
+    else
+        return NONE;
+}
 
 class ScreenMask {
     byte *screen_bytes;
@@ -162,17 +172,20 @@ public:
     directions_t direction;
     char symb;
     int points;
+    bool dead;
 
     Snake(int x, int y, directions_t dir, char symb) :
-        x(x), y(y), direction(dir), symb(symb), points(0)
+        x(x), y(y), direction(dir), symb(symb), points(0), dead(false)
     {};
 
-
-    void move(directions_t pressed, Screen &screen) {
-        if (pressed != NONE) {
-            direction = pressed;
+    void updateController(PSPad *pad) {
+        directions_t dir = padDirection(pad);
+        if (dir != NONE) {
+            direction = dir;
         }
+    }
 
+    void move(Screen &screen) {
         switch (direction) {
             case LEFT:
                 x -= 1;
@@ -212,12 +225,21 @@ TermScreen screen1(&mySerial1);
 TermScreen screen2(&mySerial2);
 ScreenWall screen = ScreenWall();
 
-Snake snake1(10, 12, RIGHT, 'X');
-Snake snake2(70, 12, LEFT, 'O');
+Snake snake1(10, 12, RIGHT, 'A');
+Snake snake2(70, 12, LEFT, 'B');
+Snake snake3(10, 12, RIGHT, 'C');
+Snake snake4(70, 12, LEFT, 'D');
+
 ScreenMask visited(2*80, 24);
 
 PSPad pad1(10, 9, 12, 11, PSPAD_MULTITAP_PAD1);
 PSPad pad2(10, 9, 12, 11, PSPAD_MULTITAP_PAD2);
+PSPad pad3(10, 9, 12, 11, PSPAD_MULTITAP_PAD2);
+PSPad pad4(10, 9, 12, 11, PSPAD_MULTITAP_PAD2);
+
+Snake *snakes[] = {&snake1, &snake2, &snake3, &snake4};
+bool active[] = {false, false, false, false};
+PSPad *pads[] = {&pad1, &pad2, &pad3, &pad4};
 
 void setup()  
 {
@@ -247,100 +269,155 @@ void setup()
     screen2.clear();
     screen2.init("\033[4l");
 
+    screen.broadcast("Want to play a game?", 30, 12);
+
 }
 
-directions_t padDirection(PSPad pad) {
-    if (pad.pressedLeft())
+directions_t padDirectionButtons(PSPad *pad) {
+    if (pad->pressedSquare())
         return LEFT;
-    else if (pad.pressedRight())
+    else if (pad->pressedCircle())
         return RIGHT;
-    else if (pad.pressedUp())
+    else if (pad->pressedTriangle())
         return UP;
-    else if (pad.pressedDown())
+    else if (pad->pressedCross())
         return DOWN;
     else
         return NONE;
 }
 
-directions_t padDirectionButtons(PSPad pad) {
-    if (pad.pressedSquare())
-        return LEFT;
-    else if (pad.pressedCircle())
-        return RIGHT;
-    else if (pad.pressedTriangle())
-        return UP;
-    else if (pad.pressedCross())
-        return DOWN;
-    else
-        return NONE;
+char tmp_buf[5];
+char *itos(int i) {
+    snprintf(&tmp_buf[0], 5, "%d", i);
+    return &tmp_buf[0];
 }
 
-void loop() {
-    directions_t dir1 = NONE;
-    directions_t dir2 = NONE;
+typedef enum {
+    RUNNING, DEAD, STOP
+} game_status_t;
 
-    pad1.update();
-    pad2.update();
-    dir1 = padDirection(pad1);
-    dir2 = padDirection(pad2);
+#define FOREACH_SNAKE(i) \
+    for (int i=0; i < 4; i++) {
 
+#define FOREACH_ACTIVE_SNAKE(i) \
+    for (int i=0; i < 4; i++) { \
+            if (!active[i]) { \
+                continue; \
+            }
+#define FOREACH_ACTIVE_SNAKE_OFFSET(i, offset) \
+    for (int i=offset; i < 4; i++) { \
+            if (!active[i]) { \
+                continue; \
+            }
 
-    // digitalWrite(13, LOW);
-    // delay(500);
-    // digitalWrite(13, HIGH);
-
-    // return;
-
-    bool end = false;
-
+game_status_t gameLoop() {
     if (pad1.pressedStart()) {
-        end = true;
-        snake1.points = 0;
-        snake2.points = 0;        
-        visited.clear();
-        screen.clear();
+        return STOP;
     }
 
-    snake1.move(dir1, screen);
-    snake2.move(dir2, screen);
-
-    if (snake1.x == snake2.x && snake1.y == snake2.y) {
-        end = true;
+    FOREACH_ACTIVE_SNAKE(i)
+        pads[i]->update();
+        snakes[i]->updateController(pads[i]);
+        snakes[i]->move(screen);
     }
 
-    if (visited.isSet(snake1.x, snake1.y)) {
-        screen.put('0', snake1.x, snake1.y);
-        snake2.points += 1;
-        end = true;
+    FOREACH_ACTIVE_SNAKE(i)
+        FOREACH_ACTIVE_SNAKE_OFFSET(j, (i+1))
+            if (snakes[i]->x == snakes[j]->x && snakes[i]->y == snakes[j]->y) {
+                snakes[i]->dead = true;
+                snakes[j]->dead = true;
+            }
+        }
     }
 
-    if (visited.isSet(snake2.x, snake2.y)) {
-        screen.put('0', snake2.x, snake2.y);
-        snake1.points += 1;
-        end = true;
+    FOREACH_ACTIVE_SNAKE(i)
+        if (visited.isSet(snakes[i]->x, snakes[i]->y)) {
+            screen.put('0', snakes[i]->x, snakes[i]->y);
+            snakes[i]->dead = true;
+        }
+    }
+    FOREACH_ACTIVE_SNAKE(i)
+        visited.set(snakes[i]->x, snakes[i]->y);
     }
 
-    visited.set(snake1.x, snake1.y);
-    visited.set(snake2.x, snake2.y);
-
-    if (end) {
-        delay(2000);
-        visited.clear();
-        screen.clear();
-        snake1.x = 10;
-        snake1.y = 12;
-        snake2.x = 70;
-        snake2.y = 12;
-        snake1.direction = RIGHT;
-        snake2.direction = LEFT;
+    FOREACH_ACTIVE_SNAKE(i)
+        if (snakes[i]->dead) {
+            return DEAD;
+        }
     }
-    screen.put('0' +  snake1.points, 0, 0);
-    screen.put('0' +  snake2.points, 79, 0);
-
 
     digitalWrite(13, LOW);
     delay(50);
     digitalWrite(13, HIGH);
 
+    return RUNNING;
+}
+
+void printScores() {
+    screen.broadcast(itos(snake1.points), 10, 0);
+    screen.broadcast(itos(snake2.points), 30, 0);
+    screen.broadcast(itos(snake3.points), 50, 0);
+    screen.broadcast(itos(snake4.points), 70, 0);
+}
+
+bool matchLoop() {
+    visited.clear();
+    screen.clear();
+
+    snake1.x = 35;
+    snake1.y = 12;
+    snake2.x = 45;
+    snake2.y = 12;
+    snake3.x = 40;
+    snake3.y = 16;
+    snake4.x = 40;
+    snake4.y = 8;
+    snake1.direction = LEFT;
+    snake2.direction = RIGHT;
+    snake3.direction = UP;
+    snake4.direction = DOWN;
+
+    printScores();
+
+    game_status_t status;
+    do {
+        status = gameLoop();
+    } while (status == RUNNING);
+
+
+    FOREACH_ACTIVE_SNAKE(i)
+        if (!snakes[i]->dead) {
+            snakes[i]->points += 1;
+        }
+        snakes[i]->dead = false;
+    }
+
+    printScores();
+
+    delay(2000);
+
+    if (status == STOP) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+void loop() {
+    pad1.update();
+    if (pad1.pressedCross()) {
+        active[0] = true;
+        active[1] = true;
+        FOREACH_SNAKE(i)
+            snakes[i]->points = 0;
+        }
+        while (matchLoop()) {
+        }
+        screen.clear();
+        screen.broadcast("Want to play a game?", 30, 12);
+    }
+    digitalWrite(13, LOW);
+    delay(50);
+    digitalWrite(13, HIGH);
 
 }
