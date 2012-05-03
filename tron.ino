@@ -181,10 +181,11 @@ public:
     int points;
     bool dead;
     bool active;
+    bool moved;
 
     Snake(int x, int y, directions_t dir, char symb, PSPad *pad) :
         x(x), y(y), direction(dir), symb(symb),
-        points(0), dead(false), active(false),
+        points(0), dead(false), active(false), moved(false),
         pad(pad)
     {};
 
@@ -240,8 +241,8 @@ ScreenWall screen = ScreenWall();
 
 PSPad pad1(10, 9, 12, 11, PSPAD_MULTITAP_PAD1);
 PSPad pad2(10, 9, 12, 11, PSPAD_MULTITAP_PAD2);
-PSPad pad3(10, 9, 12, 11, PSPAD_MULTITAP_PAD2);
-PSPad pad4(10, 9, 12, 11, PSPAD_MULTITAP_PAD2);
+PSPad pad3(10, 9, 12, 11, PSPAD_MULTITAP_PAD3);
+PSPad pad4(10, 9, 12, 11, PSPAD_MULTITAP_PAD4);
 
 Snake snake1(10, 12, RIGHT, 'A', &pad1);
 Snake snake2(70, 12, LEFT,  'B', &pad2);
@@ -306,6 +307,10 @@ typedef enum {
     RUNNING, DEAD, STOP
 } game_status_t;
 
+typedef enum {
+    SPEED_RUN, RUN
+} game_loop_mode_t;
+
 #define FOREACH_SNAKE(s) \
     for (int s ## _i=0; s ## _i < 4; s ## _i++) { \
         Snake *s = snakes[s ## _i];
@@ -317,22 +322,29 @@ typedef enum {
             continue; \
         }
 
-game_status_t gameLoop() {
-    if (pad1.pressedStart()) {
-        return STOP;
+game_status_t gameLoop(game_loop_mode_t mode) {
+    FOREACH_ACTIVE_SNAKE(snake)
+        if (snake->pad->pressedStart()) {
+            return STOP;
+        }
     }
 
     FOREACH_ACTIVE_SNAKE(snake)
         snake->updateController();
-        snake->move(screen);
+        if (mode == RUN || (mode == SPEED_RUN && snake->pad->pressedCross())) {
+            snake->move(screen);
+            snake->moved = true;
+        } else {
+            snake->moved = false;
+        }
     }
 
     for (int i=0; i < 4; i++) {
         if (!snakes[i]->active) {
             continue;
         }
-        for (int j=i+1; i < 4; i++) {
-            if (!snakes[i]->active) {
+        for (int j=i+1; j < 4; j++) {
+            if (!snakes[j]->active) {
                 continue;
             }
             if (snakes[i]->x == snakes[j]->x && snakes[i]->y == snakes[j]->y) {
@@ -343,13 +355,15 @@ game_status_t gameLoop() {
     }
 
     FOREACH_ACTIVE_SNAKE(snake)
-        if (visited.isSet(snake->x, snake->y)) {
+        if (snake->moved && visited.isSet(snake->x, snake->y)) {
             screen.put('0', snake->x, snake->y);
             snake->dead = true;
         }
     }
     FOREACH_ACTIVE_SNAKE(snake)
-        visited.set(snake->x, snake->y);
+        if (snake->moved) {
+            visited.set(snake->x, snake->y);
+        }
     }
 
     FOREACH_ACTIVE_SNAKE(snake)
@@ -357,10 +371,6 @@ game_status_t gameLoop() {
             return DEAD;
         }
     }
-
-    digitalWrite(13, LOW);
-    delay(50);
-    digitalWrite(13, HIGH);
 
     return RUNNING;
 }
@@ -383,6 +393,12 @@ void welcomeScreen() {
     screen.broadcast("Press X!", 35, 14);
 }
 
+void updateControllers() {
+    FOREACH_ACTIVE_SNAKE(snake)
+        snake->updateController();
+    }
+}
+
 bool matchLoop() {
     visited.clear();
     screen.clear();
@@ -397,16 +413,31 @@ bool matchLoop() {
     snake4.y = 8;
     snake1.direction = LEFT;
     snake2.direction = RIGHT;
-    snake3.direction = UP;
-    snake4.direction = DOWN;
+    snake3.direction = DOWN;
+    snake4.direction = UP;
 
     printScores();
 
     game_status_t status;
-    do {
-        status = gameLoop();
-    } while (status == RUNNING);
+    while (true) {
+        updateControllers();
+        delay(10);
+        updateControllers();
+        delay(10);
 
+        status = gameLoop(SPEED_RUN);
+        if (status != RUNNING) {
+            break;
+        }
+        updateControllers();
+        delay(10);
+        updateControllers();
+        delay(10);
+        status = gameLoop(RUN);
+        if (status != RUNNING) {
+            break;
+        }
+    }
 
     FOREACH_ACTIVE_SNAKE(snake)
         if (!snake->dead) {

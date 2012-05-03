@@ -42,7 +42,7 @@ public:
 		: pinCmd(pinCmd), pinData(pinData),
 		  pinClock(pinClock), pinAtt(pinAtt),
 		  multitapPort(multitapPort),
-		  bitDelay(50)
+		  bitDelay(10)
 	{
 		pinMode(pinCmd, OUTPUT);
 
