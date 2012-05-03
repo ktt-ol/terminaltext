@@ -1,5 +1,4 @@
 #include <SoftwareSerial.h>
-#include <avr/pgmspace.h>
 #include "PSPad.h"
 
 // \033[?7l disable autowrap
@@ -229,6 +228,8 @@ public:
 
 };
 
+void welcomeScreen();
+
 
 // SoftwareSerial(RX, TX) (MAX232 Pins: 9/10, 12/11)
 SoftwareSerial mySerial1(2, 3);
@@ -279,8 +280,7 @@ void setup()
     screen2.clear();
     screen2.init("\033[4l");
 
-    screen.broadcast("Want to play a game?", 30, 12);
-
+    welcomeScreen();
 }
 
 directions_t padDirectionButtons(PSPad *pad) {
@@ -377,6 +377,12 @@ void printScores() {
     }
 }
 
+void welcomeScreen() {
+    screen.clear();
+    screen.broadcast("Want to play a game?", 30, 12);
+    screen.broadcast("Press X!", 35, 14);
+}
+
 bool matchLoop() {
     visited.clear();
     screen.clear();
@@ -446,7 +452,7 @@ bool collectPlayers() {
         screen.clear();
         screen.broadcast("Game starts in 5", 30, 12);
         screen.broadcast("Press X!", 35, 14);
-        while ((millis() - startTime) <= 5000 || numPlayers < 4) {
+        while ((millis() - startTime) <= 5000 && numPlayers < 4) {
             printScores();
             screen.broadcast("Game starts in ", 30, 12);
             screen.broadcast('5' - ((millis() - startTime)/1000), 45, 12);
@@ -465,9 +471,7 @@ void loop() {
             snake->active = false;
             snake->points = 0;
         }
-        screen.clear();
-        screen.broadcast("Want to play a game?", 30, 12);
-        screen.broadcast("Press X!", 35, 14);
+        welcomeScreen();
     }
     delay(50);
 }
