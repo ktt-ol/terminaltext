@@ -124,7 +124,7 @@ public:
 };
 
 typedef enum {
-    LEFT, RIGHT, UP, DOWN, NONE
+    NONE=0, LEFT=1, RIGHT, UP, DOWN
 } directions_t;
 
 directions_t padDirection(PSPad *pad) {
@@ -171,6 +171,52 @@ public:
       
 };
 
+void limitToScreen(int *x, int *y, Screen *screen) {
+        if (*x < 0) {
+            *x = screen->width - 1;
+        } else if (*x >= screen->width) {
+            *x = 0;
+        }
+
+        if (*y < 0) {
+            *y = screen->height - 1;
+        } else if (*y >= screen->height) {
+            *y = 0;
+        }
+}
+
+void updatePos(int *x, int*y, directions_t direction) {
+    switch (direction) {
+        case LEFT:
+            *x -= 1;
+            break;
+        case RIGHT:
+            *x += 1;
+            break;
+        case UP:
+            *y -= 1;
+            break;
+        case DOWN:
+            *y += 1;
+            break;
+    }
+}
+
+bool sameOrOpositeDirection(directions_t a, directions_t b) {
+    if (a == b) {
+        return true;
+    }
+    
+    if (a >= UP && b >= UP) {
+        return true;
+    }
+    if (a < UP && a >= LEFT && b < UP && b >= LEFT) {
+        return true;
+    }
+
+    return false;
+}
+
 class Snake {
 public:
     int x;
@@ -182,49 +228,27 @@ public:
     bool dead;
     bool active;
     bool moved;
+    bool autoPilot;
 
     Snake(int x, int y, directions_t dir, char symb, PSPad *pad) :
         x(x), y(y), direction(dir), symb(symb),
         points(0), dead(false), active(false), moved(false),
-        pad(pad)
+        autoPilot(false), pad(pad)
     {};
 
     void updateController() {
         pad->update();
         directions_t dir = padDirection(pad);
-        if (dir != NONE) {
+        if (dir != NONE || sameOrOpositeDirection(dir, direction)) {
             direction = dir;
         }
     }
 
-    void move(Screen &screen) {
-        switch (direction) {
-            case LEFT:
-                x -= 1;
-                break;
-            case RIGHT:
-                x += 1;
-                break;
-            case UP:
-                y -= 1;
-                break;
-            case DOWN:
-                y += 1;
-                break;
-        }
-        if (x < 0) {
-            x = screen.width - 1;
-        } else if (x >= screen.width) {
-            x = 0;
-        }
-
-        if (y < 0) {
-            y = screen.height - 1;
-        } else if (y >= screen.height) {
-            y = 0;
-        }
+    void move(Screen *screen) {
+        updatePos(&x, &y, direction);
+        limitToScreen(&x, &y, screen);
         
-        screen.put(symb, x, y);
+        screen->put(symb, x, y);
     };
 
 };
@@ -329,16 +353,21 @@ game_status_t gameLoop(game_loop_mode_t mode) {
         }
     }
 
+    // handle movement
     FOREACH_ACTIVE_SNAKE(snake)
+        if (snake->dead) {
+            continue;
+        }
         snake->updateController();
         if (mode == RUN || (mode == SPEED_RUN && snake->pad->pressedCross())) {
-            snake->move(screen);
+            snake->move(&screen);
             snake->moved = true;
         } else {
             snake->moved = false;
         }
     }
 
+    // check hits between two snakes
     for (int i=0; i < 4; i++) {
         if (!snakes[i]->active) {
             continue;
@@ -354,6 +383,7 @@ game_status_t gameLoop(game_loop_mode_t mode) {
         }
     }
 
+    // check hits
     FOREACH_ACTIVE_SNAKE(snake)
         if (snake->moved && visited.isSet(snake->x, snake->y)) {
             screen.put('0', snake->x, snake->y);
@@ -366,10 +396,20 @@ game_status_t gameLoop(game_loop_mode_t mode) {
         }
     }
 
+    int snakesAlive = 0;
+    int snakesActive = 0;
     FOREACH_ACTIVE_SNAKE(snake)
-        if (snake->dead) {
-            return DEAD;
+        snakesActive += 1;
+        if (!snake->dead) {
+            snakesAlive += 1;            
         }
+    }
+
+    if (snakesActive >= 2 && snakesAlive <= 1) {
+        return DEAD;
+    }
+    if (snakesActive == 1 && snakesAlive <= 1) {
+        return DEAD;
     }
 
     return RUNNING;
@@ -403,18 +443,18 @@ bool matchLoop() {
     visited.clear();
     screen.clear();
 
-    snake1.x = 35;
+    snake1.x = 20;
     snake1.y = 12;
-    snake2.x = 45;
+    snake2.x = 60;
     snake2.y = 12;
-    snake3.x = 40;
-    snake3.y = 16;
-    snake4.x = 40;
-    snake4.y = 8;
-    snake1.direction = LEFT;
-    snake2.direction = RIGHT;
-    snake3.direction = DOWN;
-    snake4.direction = UP;
+    snake3.x = 80+20;
+    snake3.y = 12;
+    snake4.x = 80+60;
+    snake4.y = 12;
+    snake1.direction = UP;
+    snake2.direction = DOWN;
+    snake3.direction = UP;
+    snake4.direction = DOWN;
 
     printScores();
 
