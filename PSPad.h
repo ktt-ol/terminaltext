@@ -1,3 +1,7 @@
+// for reference
+// http://web.archive.org/web/20080115081800/http://sophiateam.undrgnd.free.fr/psx/index.html#intro
+
+
 const byte PSPAD_REQUEST_CMD = 0x42;
 const byte PSPAD_IDLE = 0x00;
 
