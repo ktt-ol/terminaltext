@@ -4,11 +4,14 @@
 // \033[?7l disable autowrap
 // \033[4h enable insert mode
 
+const int DEFAULT_SCREEN_HEIGHT = 24;
+const int DEFAULT_SCREEN_WIDTH = 80;
+
 class Screen {
 public:
     int width;
     int height;
-    Screen(int width=80, int height=24) : 
+    Screen(int width=DEFAULT_SCREEN_WIDTH, int height=DEFAULT_SCREEN_HEIGHT) : 
         width(width), height(height)
     {}
     virtual void put(char c, int col, int row) = 0;
@@ -21,7 +24,7 @@ public:
 
     SoftwareSerial *serial;
 
-    TermScreen(SoftwareSerial *serial, int width=80, int height=24) :
+    TermScreen(SoftwareSerial *serial, int width=DEFAULT_SCREEN_WIDTH, int height=DEFAULT_SCREEN_HEIGHT) :
         serial(serial), Screen(width, height)
     {};
 
@@ -273,7 +276,7 @@ Snake snake2(70, 12, LEFT,  'B', &pad2);
 Snake snake3(10, 12, RIGHT, 'C', &pad3);
 Snake snake4(70, 12, LEFT,  'D', &pad4);
 
-ScreenMask visited(2*80, 24);
+ScreenMask visited(2*DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT);
 
 Snake *snakes[] = {&snake1, &snake2, &snake3, &snake4};
 
@@ -302,8 +305,15 @@ void setup()
     // \033[4h enable insert mode
     screen1.clear();
     screen1.init("\033[4l");
+    screen1.init("\033[3;4z");
+    // screen1.init("\033[?5l");
+    screen1.init("\033[1;1Z");
+
     screen2.clear();
     screen2.init("\033[4l");
+    screen2.init("\033[3;4z");
+    // screen2.init("\033[?5l");
+    screen2.init("\033[1;1Z");        
 
     welcomeScreen();
 }
@@ -447,9 +457,9 @@ bool matchLoop() {
     snake1.y = 12;
     snake2.x = 60;
     snake2.y = 12;
-    snake3.x = 80+20;
+    snake3.x = DEFAULT_SCREEN_WIDTH+20;
     snake3.y = 12;
-    snake4.x = 80+60;
+    snake4.x = DEFAULT_SCREEN_WIDTH+60;
     snake4.y = 12;
     snake1.direction = UP;
     snake2.direction = DOWN;
