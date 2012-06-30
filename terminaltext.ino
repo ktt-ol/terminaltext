@@ -1,84 +1,25 @@
 #include <SoftwareSerial.h>
 #include <avr/pgmspace.h>
 #include "ktt_text.h"
+#include "screen.h"
 
-// \033[?7l disable autowrap
-// \033[4h enable insert mode
-
-class TermScreen {
-public:
-
-    const int width;
-    const int height;
-    SoftwareSerial *serial;
-
-    TermScreen(SoftwareSerial *serial, int width=80, int height=24) :
-        serial(serial), width(width), height(height)
-    {};
-
-    void init(const char *initString) {
-        // puts("\033c"); // reset
-        delay(100);
-        puts(initString);
-    }
-
-    void moveTo(int col, int row) {
-        if (row < 0 || row >= height || col < 0 || col >= width) {
-            return;
-        }
-        serial->print("\033[");
-        serial->print(row+1);
-        serial->print(";");
-        serial->print(col+1);
-        serial->print("H");
-    };
-    
-    void puts(const char *c) {
-        while (*c != '\0') {
-            put(*c);
-            c++;
-        }
-    };
-
-    void put(char c, int col, int row) {
-        moveTo(col, row);
-        serial->print(c);
-    };
-
-    void put(char c) {
-        serial->print(c);
-    };
-
-    void refresh() {
-        serial->print("\033[0;0H");
-    };
-
-    void clear() {
-        serial->print("\033[H\033[2J");      
-    };
-
-    void disableCursor() {
-        serial->print("\033[3;4z");
-    }
-
-};
-
-// SoftwareSerial(RX, TX) (MAX232 Pins: 9/10, 12/11)
 SoftwareSerial mySerial1(2, 3);
 SoftwareSerial mySerial2(5, 4);
 TermScreen screen1(&mySerial1);
 TermScreen screen2(&mySerial2);
 
-
-void setup()  
+void setup()
 {
-    pinMode(13, OUTPUT);
-
     mySerial1.begin(9600);
     mySerial2.begin(9600);
+
+    screen1.clear();
+    screen2.clear();
 }
 
-void textMoveRight() {
+void textMoveRight(TermScreen &screen1, TermScreen &screen2) {
+    // \033[?7l disable autowrap
+    // \033[4h enable insert mode
     screen1.init("\033[4h\033[?7l");
     screen2.init("\033[4h\033[?7l");
     delay(100);
@@ -110,7 +51,7 @@ void textMoveRight() {
     }
 }
 
-void textMoveLeft() {
+void textMoveLeft(TermScreen &screen1, TermScreen &screen2) {
     screen1.init("\033[4h\033[?7l");
     screen2.init("\033[4h\033[?7l");
     delay(100);
@@ -143,7 +84,7 @@ void textMoveLeft() {
 }
 
 
-void textAppear(int textIdx1, int textIdx2) {
+void textAppear(TermScreen &screen1, TermScreen &screen2, int textIdx1, int textIdx2) {
     screen1.init("\033[4l\033[?7l");
     screen2.init("\033[4l\033[?7l");
     delay(100);
@@ -165,33 +106,47 @@ void textAppear(int textIdx1, int textIdx2) {
             screen2.moveTo(x, y + yOffset2);
             screen2.put(c);
         }
-        delay(2);
+        delay(1);
+    }
+}
+
+
+
+void textAppear(TermScreen &screen1, int textIdx1) {
+    screen1.init("\033[4l\033[?7l");
+    delay(100);
+    char c = 0;
+    int x, y;
+    int yOffset1;
+
+    yOffset1 = 24 / 2 - numRows[textIdx1] / 2;
+
+    for (int i = 0; i < numChars[textIdx1]; i++) {
+        if (i < numChars[textIdx1]) {
+            randomDataChar(textIdx1, i, &x, &y, &c);
+            screen1.moveTo(x, y + yOffset1);
+            screen1.put(c);
+        }
+        // delay(1);
     }
 }
 
 
 void loop() {
-    textAppear(0, 1);
-    delay(1000);
+    textAppear(screen1, 0);
+    delay(1500);
     screen1.clear();
-    screen2.clear();
 
-    textAppear(2, 3);
-    delay(1000);
+    textAppear(screen1, 1);
+    delay(1500);
     screen1.clear();
-    screen2.clear();
 
-    textMoveLeft();
-
-    textAppear(0, 1);
-    delay(1000);
+    textAppear(screen1, 2);
+    delay(1500);
     screen1.clear();
-    screen2.clear();
 
-    textAppear(2, 3);
-    delay(1000);
+    textAppear(screen1, 3);
+    // ktt-ol.de URL
+    delay(3000);
     screen1.clear();
-    screen2.clear();
-
-    textMoveRight();
 }
