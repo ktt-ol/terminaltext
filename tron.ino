@@ -27,11 +27,11 @@ class ScreenMask {
     byte *screen_bytes;
     int width;
     int height;
-    int y_stride;    
+    int y_stride;
 public:
     ScreenMask(int width, int height) :
         width(width), height(height), y_stride(width / 8)
-    {   
+    {
         screen_bytes = (byte *)calloc(sizeof(byte), y_stride * height);
     }
 
@@ -51,7 +51,7 @@ public:
     void clear() {
         memset(screen_bytes, 0, y_stride * height);
     }
-      
+
 };
 
 void limitToScreen(int *x, int *y, Screen *screen) {
@@ -89,7 +89,7 @@ bool sameOrOpositeDirection(directions_t a, directions_t b) {
     if (a == b) {
         return true;
     }
-    
+
     if (a >= UP && b >= UP) {
         return true;
     }
@@ -130,7 +130,7 @@ public:
     void move(Screen *screen) {
         updatePos(&x, &y, direction);
         limitToScreen(&x, &y, screen);
-        
+
         screen->put(symb, x, y);
     };
 
@@ -160,7 +160,7 @@ ScreenMask visited(2*DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT);
 
 Snake *snakes[] = {&snake1, &snake2, &snake3, &snake4};
 
-void setup()  
+void setup()
 {
     screen.addScreen(&screen1);
     screen.addScreen(&screen2);
@@ -193,7 +193,7 @@ void setup()
     screen2.init("\033[4l");
     screen2.init("\033[3;4z");
     // screen2.init("\033[?5l");
-    screen2.init("\033[1;1Z");        
+    screen2.init("\033[1;1Z");
 
     welcomeScreen();
 }
@@ -291,14 +291,14 @@ game_status_t gameLoop(game_loop_mode_t mode) {
     FOREACH_ACTIVE_SNAKE(snake)
         snakesActive += 1;
         if (!snake->dead) {
-            snakesAlive += 1;            
+            snakesAlive += 1;
         }
     }
 
     if (snakesActive >= 2 && snakesAlive <= 1) {
         return DEAD;
     }
-    if (snakesActive == 1 && snakesAlive <= 1) {
+    if (snakesActive == 1 && snakesAlive <= 0) {
         return DEAD;
     }
 
@@ -426,7 +426,7 @@ bool collectPlayers() {
 
 void loop() {
     if (collectPlayers()) {
-        while (matchLoop()) 
+        while (matchLoop())
         {};
         FOREACH_SNAKE(snake)
             snake->active = false;
