@@ -1,5 +1,6 @@
 #include <SoftwareSerial.h>
 #include "screen.h"
+#include "textappear.h"
 #include "PSPad.h"
 
 // \033[?7l disable autowrap
@@ -158,10 +159,15 @@ Snake snake4(70, 12, LEFT,  'D', &pad4);
 
 ScreenMask visited(2*DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT);
 
+text_appear_t text_appear;
+
 Snake *snakes[] = {&snake1, &snake2, &snake3, &snake4};
 
 void setup()
 {
+    // wait for terminals to boot
+    delay(1000);
+
     screen.addScreen(&screen1);
     screen.addScreen(&screen2);
 
@@ -184,18 +190,23 @@ void setup()
 
     // \033[4h enable insert mode
     screen1.clear();
+    delay(200);
+
     screen1.init("\033[4l");
     screen1.init("\033[3;4z");
     // screen1.init("\033[?5l");
     screen1.init("\033[1;1Z");
 
     screen2.clear();
+    delay(200);
     screen2.init("\033[4l");
     screen2.init("\033[3;4z");
     // screen2.init("\033[?5l");
     screen2.init("\033[1;1Z");
 
-    welcomeScreen();
+    delay(500);
+
+    // welcomeScreen();
 }
 
 directions_t padDirectionButtons(PSPad *pad) {
@@ -424,15 +435,57 @@ bool collectPlayers() {
     return false;
 }
 
+#define COLLECT_BREAK() \
+    if (collectPlayers()) {\
+        collected = true;\
+        break;\
+    }\
+
+#define WAIT_COLLECT_BREAK(ms) \
+    for (int i = 0; i < ms/20; ++i) {\
+        COLLECT_BREAK()\
+        delay(20);\
+    }\
+
 void loop() {
-    if (collectPlayers()) {
+    bool collected = false;
+    if (!collected) {
+        text_appear_init(&text_appear, &screen1, &screen2, 0, 1);
+        while (text_appear_step(&text_appear)) {
+            COLLECT_BREAK();
+        }
+        WAIT_COLLECT_BREAK(3000);
+        while (text_disappear_step(&text_appear)) {
+            COLLECT_BREAK();
+        }
+    }
+    if (!collected) {
+        welcomeScreen();
+        WAIT_COLLECT_BREAK(3000);
+    }
+    if (!collected) {
+        text_appear_init(&text_appear, &screen1, &screen2, 1, 0);
+        while (text_appear_step(&text_appear)) {
+            COLLECT_BREAK();
+        }
+        WAIT_COLLECT_BREAK(3000);
+        while (text_disappear_step(&text_appear)) {
+            COLLECT_BREAK();
+        }
+    }
+    if (!collected) {
+        welcomeScreen();
+        WAIT_COLLECT_BREAK(3000);
+    }
+    if (collected) {
         while (matchLoop())
         {};
         FOREACH_SNAKE(snake)
             snake->active = false;
             snake->points = 0;
         }
-        welcomeScreen();
+        // welcomeScreen();
     }
     delay(50);
 }
+

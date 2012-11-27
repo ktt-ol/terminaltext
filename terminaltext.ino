@@ -92,17 +92,17 @@ void textAppear(TermScreen &screen1, TermScreen &screen2, int textIdx1, int text
     int x, y;
     int yOffset1, yOffset2;
 
-    yOffset1 = 24 / 2 - numRows[textIdx1] / 2;
-    yOffset2 = 24 / 2 - numRows[textIdx2] / 2;
+    yOffset1 = 24 / 2 - rnd_text_rows[textIdx1] / 2;
+    yOffset2 = 24 / 2 - rnd_text_rows[textIdx2] / 2;
 
-    for (int i = 0; i < max(numChars[textIdx1], numChars[textIdx2]); i++) {
-        if (i < numChars[textIdx1]) {
-            randomDataChar(textIdx1, i, &x, &y, &c);
+    for (int i = 0; i < max(rnd_text_chars[textIdx1], rnd_text_chars[textIdx2]); i++) {
+        if (i < rnd_text_chars[textIdx1]) {
+            rnd_text_char(textIdx1, i, &x, &y, &c);
             screen1.moveTo(x, y + yOffset1);
             screen1.put(c);
         }
-        if (i < numChars[textIdx2]) {
-            randomDataChar(textIdx2, i, &x, &y, &c);
+        if (i < rnd_text_chars[textIdx2]) {
+            rnd_text_char(textIdx2, i, &x, &y, &c);
             screen2.moveTo(x, y + yOffset2);
             screen2.put(c);
         }
@@ -119,11 +119,11 @@ void textAppear(TermScreen &screen1, int textIdx1) {
     int x, y;
     int yOffset1;
 
-    yOffset1 = 24 / 2 - numRows[textIdx1] / 2;
+    yOffset1 = 24 / 2 - rnd_text_rows[textIdx1] / 2;
 
-    for (int i = 0; i < numChars[textIdx1]; i++) {
-        if (i < numChars[textIdx1]) {
-            randomDataChar(textIdx1, i, &x, &y, &c);
+    for (int i = 0; i < rnd_text_chars[textIdx1]; i++) {
+        if (i < rnd_text_chars[textIdx1]) {
+            rnd_text_char(textIdx1, i, &x, &y, &c);
             screen1.moveTo(x, y + yOffset1);
             screen1.put(c);
         }

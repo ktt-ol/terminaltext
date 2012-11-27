@@ -78,21 +78,21 @@ def random_appear_text(texts):
     all_chars = ''.join(text_chars)
     offsets = offsets[:-1]
 
-    print "int numTexts = %d;" % len(text_chars)
-    print "int numChars[] = {%s};" % ', '.join('%d' % c for c in num_chars)
-    print "int numRows[] = {%s};" % ', '.join('%d' % c for c in num_rows)
-    print "int charOffsets[] = {%s};" % ', '.join('%d' % c for c in offsets)
+    print "int rnd_text_num = %d;" % len(text_chars)
+    print "int rnd_text_chars[] = {%s};" % ', '.join('%d' % c for c in num_chars)
+    print "int rnd_text_rows[] = {%s};" % ', '.join('%d' % c for c in num_rows)
+    print "int rnd_text_char_offsets[] = {%s};" % ', '.join('%d' % c for c in offsets)
 
-    print "PROGMEM prog_uchar charData[] = {",
+    print "PROGMEM prog_uchar rnd_text_char_data[] = {",
     print '"' + repr(all_chars).replace('"', '\\"')[1:-1] + '"',
     print "};"
-    
-    print """
-    void inline randomDataChar(int textIdx, int charIdx, int *x, int *y, char *c) {
 
-        *c = pgm_read_byte_near(charData + charOffsets[textIdx] + charIdx * 3);
-        *x = pgm_read_byte_near(charData + charOffsets[textIdx] + charIdx * 3 + 1);
-        *y = pgm_read_byte_near(charData + charOffsets[textIdx] + charIdx * 3 + 2);
+    print """
+    void inline rnd_text_char(int textIdx, int charIdx, int *x, int *y, char *c) {
+
+        *c = pgm_read_byte_near(rnd_text_char_data + rnd_text_char_offsets[textIdx] + charIdx * 3);
+        *x = pgm_read_byte_near(rnd_text_char_data + rnd_text_char_offsets[textIdx] + charIdx * 3 + 1);
+        *y = pgm_read_byte_near(rnd_text_char_data + rnd_text_char_offsets[textIdx] + charIdx * 3 + 2);
     }
     """
 
@@ -102,4 +102,5 @@ if __name__ == '__main__':
     text = text.replace('\t', ' ' * 20)
     vertical_text(text)
 
-    random_appear_text(["Kreativit{t trifft Technik", "BetaSpace", "Der Oldenburger Hackspace", "http://ktt-ol.de"])
+    # random_appear_text(["Kreativit{t trifft Technik", "BetaSpace", "Der Oldenburger Hackspace", "http://ktt-ol.de"])
+    random_appear_text(["Mainframe", "Tron", "Der Oldenburger Hackspace", "http://ktt-ol.de"])
