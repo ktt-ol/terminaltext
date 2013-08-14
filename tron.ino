@@ -366,20 +366,34 @@ bool matchLoop() {
     game_status_t status;
 
     long loopCounter = 0;
+    byte playerCount = 0;
+    FOREACH_ACTIVE_SNAKE(snake)
+        playerCount += 1;
+    }
     while (true) {
+
         updateControllers();
-        delay(10);
-        updateControllers();
-        delay(10);
+        if (playerCount < 4) {
+            delay(10);
+        }
+        if (playerCount < 3) {
+            updateControllers();
+            delay(10);
+        }
 
         status = gameLoop(SPEED_RUN);
         if (status != RUNNING) {
             break;
         }
         updateControllers();
-        delay(10);
-        updateControllers();
-        delay(10);
+        if (playerCount < 4) {
+            delay(10);
+        }
+        if (playerCount < 3) {
+            updateControllers();
+            delay(10);
+        }
+
         status = gameLoop(RUN);
         
         printScores(loopCounter % 4);
