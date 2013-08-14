@@ -108,7 +108,7 @@ public:
     directions_t direction;
     PSPad *pad;
     char symb;
-    int points;
+    long points;
     bool dead;
     bool active;
     bool moved;
@@ -222,9 +222,9 @@ directions_t padDirectionButtons(PSPad *pad) {
         return NONE;
 }
 
-char tmp_buf[5];
+char tmp_buf[7];
 char *itos(int i) {
-    snprintf(&tmp_buf[0], 5, "%d", i);
+    snprintf(&tmp_buf[0], sizeof(tmp_buf), "%d", i);
     return &tmp_buf[0];
 }
 
@@ -263,6 +263,7 @@ game_status_t gameLoop(game_loop_mode_t mode) {
         if (mode == RUN || (mode == SPEED_RUN && snake->pad->pressedCross())) {
             snake->move(&screen);
             snake->moved = true;
+            snake->points += 1;
         } else {
             snake->moved = false;
         }
@@ -316,13 +317,16 @@ game_status_t gameLoop(game_loop_mode_t mode) {
     return RUNNING;
 }
 
-void printScores() {
+/* printScores for snake. -1 for all scores */
+void printScores(int snakeNum=-1) {
     int textPos = 10;
-
+    
     FOREACH_SNAKE(snake)
-        if (snake->active) {
-            screen.broadcast(snake->symb, textPos, 0);
-            screen.broadcast(itos(snake->points), textPos + 2, 0);
+        if (snakeNum == -1 || snakeNum == snake_i) {
+            if (snake->active) {
+                screen.broadcast(snake->symb, textPos, 0);
+                screen.broadcast(itos(snake->points), textPos + 2, 0);
+            }
         }
         textPos += 20;
     }
@@ -360,6 +364,8 @@ bool matchLoop() {
     printScores();
 
     game_status_t status;
+
+    long loopCounter = 0;
     while (true) {
         updateControllers();
         delay(10);
@@ -375,6 +381,10 @@ bool matchLoop() {
         updateControllers();
         delay(10);
         status = gameLoop(RUN);
+        
+        printScores(loopCounter % 4);
+        loopCounter += 1;
+
         if (status != RUNNING) {
             break;
         }
@@ -382,7 +392,7 @@ bool matchLoop() {
 
     FOREACH_ACTIVE_SNAKE(snake)
         if (!snake->dead) {
-            snake->points += 1;
+            snake->points += 500;
         }
         snake->dead = false;
     }
