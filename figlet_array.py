@@ -32,12 +32,11 @@ def vertical_text(text):
             columns[i].append(c)
     columns.reverse()
 
-    from pprint import pprint
 
     print "int dataCols = %d;" % len(columns)
     print "int dataRows = %d;" % len(columns[0])
 
-    print "PROGMEM prog_uchar data[] = {",
+    print "const PROGMEM char data[] = {",
     data = repr(''.join(''.join(col) for col in columns))
     print '"' + data[1:-1] + '"',
     print "};"
@@ -83,7 +82,7 @@ def random_appear_text(texts):
     print "int rnd_text_rows[] = {%s};" % ', '.join('%d' % c for c in num_rows)
     print "int rnd_text_char_offsets[] = {%s};" % ', '.join('%d' % c for c in offsets)
 
-    print "PROGMEM prog_uchar rnd_text_char_data[] = {",
+    print "const PROGMEM char rnd_text_char_data[] = {",
     print '"' + repr(all_chars).replace('"', '\\"')[1:-1] + '"',
     print "};"
 
@@ -98,9 +97,9 @@ def random_appear_text(texts):
 
 if __name__ == '__main__':
     # { -> ä, } -> ü see Figlet manpage
-    text = "Kreativit{t trifft Technik\tBetaSpace"
+    text = "Kreativit{t trifft Technik\tMainframe"
     text = text.replace('\t', ' ' * 20)
     vertical_text(text)
 
     # random_appear_text(["Kreativit{t trifft Technik", "BetaSpace", "Der Oldenburger Hackspace", "http://ktt-ol.de"])
-    random_appear_text(["Mainframe", "Tron", "Der Oldenburger Hackspace", "http://ktt-ol.de"])
+    random_appear_text(["Mainframe", "Tron", "Der Oldenburger Hackspace", "http://mainframe.io"])
