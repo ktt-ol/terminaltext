@@ -435,49 +435,44 @@ bool collectPlayers() {
     return false;
 }
 
-#define COLLECT_BREAK() \
+#define COLLECT_JMP() \
     if (collectPlayers()) {\
-        collected = true;\
-        break;\
+        goto collected;\
     }\
 
-#define WAIT_COLLECT_BREAK(ms) \
+#define WAIT_COLLECT_JMP(ms) \
     for (int i = 0; i < ms/20; ++i) {\
-        COLLECT_BREAK()\
+        COLLECT_JMP()\
         delay(20);\
     }\
 
 void loop() {
-    bool collected = false;
-    if (!collected) {
-        text_appear_init(&text_appear, &screen1, &screen2, 0, 1);
-        while (text_appear_step(&text_appear)) {
-            COLLECT_BREAK();
-        }
-        WAIT_COLLECT_BREAK(3000);
-        while (text_disappear_step(&text_appear)) {
-            COLLECT_BREAK();
-        }
+    text_appear_init(&text_appear, &screen1, &screen2, 0, 1);
+    while (text_appear_step(&text_appear)) {
+        COLLECT_JMP();
     }
-    if (!collected) {
-        welcomeScreen();
-        WAIT_COLLECT_BREAK(3000);
+    WAIT_COLLECT_JMP(3000);
+    while (text_disappear_step(&text_appear)) {
+        COLLECT_JMP();
     }
-    if (!collected) {
-        text_appear_init(&text_appear, &screen1, &screen2, 1, 0);
-        while (text_appear_step(&text_appear)) {
-            COLLECT_BREAK();
-        }
-        WAIT_COLLECT_BREAK(3000);
-        while (text_disappear_step(&text_appear)) {
-            COLLECT_BREAK();
-        }
+        
+    welcomeScreen();
+    WAIT_COLLECT_JMP(3000);
+    
+    text_appear_init(&text_appear, &screen1, &screen2, 1, 0);
+    while (text_appear_step(&text_appear)) {
+        COLLECT_JMP();
     }
-    if (!collected) {
-        welcomeScreen();
-        WAIT_COLLECT_BREAK(3000);
+    WAIT_COLLECT_JMP(3000);
+    while (text_disappear_step(&text_appear)) {
+        COLLECT_JMP();
     }
-    if (collected) {
+
+    welcomeScreen();
+    WAIT_COLLECT_JMP(3000);
+
+    if (0) {
+collected:
         while (matchLoop())
         {};
         FOREACH_SNAKE(snake)
