@@ -61,11 +61,12 @@ void limitToScreen(int *x, int *y, Screen *screen) {
         } else if (*x >= screen->width) {
             *x = 0;
         }
-
-        if (*y < 0) {
+        
+        // keep row 0 empty for scores
+        if (*y <= 0) {
             *y = screen->height - 1;
         } else if (*y >= screen->height) {
-            *y = 0;
+            *y = 1;
         }
 }
 
