@@ -333,6 +333,25 @@ void printScores(int snakeNum=-1) {
     }
 }
 
+void printScoresScreen() {
+    int row = 10;
+
+    screen.clear();
+    screen.broadcast("GAME OVER", 10, row++);
+    row++;
+    screen.broadcast("Scores", 10, row++);
+    screen.broadcast("======", 10, row++);
+
+    FOREACH_SNAKE(snake)
+        if (snake->active) {
+            screen.broadcast(snake->symb, 10, row);
+            screen.broadcast(itos(snake->points), 12, row++);
+        }
+    }
+    row++;
+    screen.broadcast("Press X to continue.", 10, row++);
+}
+
 void welcomeScreen() {
     screen.clear();
     screen.broadcast("Want to play a game?", 30, 12);
@@ -414,7 +433,7 @@ bool matchLoop() {
 
     printScores();
 
-    delay(2000);
+    delay(1000);
 
     if (status == STOP) {
         return false;
@@ -471,6 +490,17 @@ bool collectPlayers() {
         delay(20);\
     }\
 
+void waitOrPressedCross(int ms) {
+    for (int i = 0; i < ms/20; ++i) {
+        FOREACH_SNAKE(snake)
+            if (snake->pad->pressedCross()) {
+                return;
+            }
+        }
+        delay(20);
+    }
+}
+
 void loop() {
     text_appear_init(&text_appear, &screen1, &screen2, 0, 1);
     while (text_appear_step(&text_appear)) {
@@ -498,8 +528,17 @@ void loop() {
 
     if (0) {
 collected:
-        while (matchLoop())
-        {};
+        int maxMatches = 10;
+        for (int matchCount = 1; matchLoop() && matchCount < maxMatches; matchCount++) {
+            screen.broadcast(itos(matchCount), 40, 21);
+            screen.broadcast("/", 42, 21);
+            screen.broadcast(itos(maxMatches), 43, 21);
+            waitOrPressedCross(1000);
+        }
+
+        printScoresScreen();
+        waitOrPressedCross(10000);
+
         FOREACH_SNAKE(snake)
             snake->active = false;
             snake->points = 0;
